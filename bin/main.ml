@@ -19,4 +19,4 @@ let () =
     ~error_handler:Dream.debug_error_handler
   @@ Dream.set_secret Fsoconf.secret_key
   @@ Dream.sql_pool ~size:Fsoconf.sql_pool_size Fsoconf.sql_url
-  @@ Fsocaml.Router.router ()
+  @@ Ptb.Router.router ()

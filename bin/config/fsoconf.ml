@@ -28,7 +28,7 @@ let db_params =
     username = "postgres";
     password = "postgres";
     hostname = "localhost";
-    database = "fsocaml_dev";
+    database = "ptb_dev";
     pool_size = 10;
   }
 
