@@ -77,7 +77,7 @@ let patch_sfile filename from into =
 
 (** Scan lines in a source code file and replace all instances of `from` with
     `into`. *)
-let patch_mlfile filename ~from ~into =
+let patch_srcfile filename ~from ~into =
   let data =
     In_channel.read_all filename
     |> String.substr_replace_all ~pattern:from ~with_:into
@@ -109,10 +109,12 @@ let () =
   List.iter dune_files ~f:(fun file -> patch_sfile file "fsocaml" projname');
 
   let projname'' = String.capitalize projname' in
-  patch_mlfile "bin/main.ml" ~from:"Fsocaml.Router.router"
+  patch_srcfile "bin/main.ml" ~from:"Fsocaml.Router.router"
     ~into:(projname'' ^ ".Router.router");
+  patch_srcfile "fly.toml" ~from:"fsocaml" ~into:projname'';
+  patch_srcfile "Dockerfile" ~from:"fsocaml" ~into:projname'';
 
-  printf "%d files were patched.\n" (List.length dune_files + 1);
+  printf "%d files were patched.\n" (List.length dune_files + 3);
 
   rename_files
   |> List.iter ~f:(fun oldpath ->
