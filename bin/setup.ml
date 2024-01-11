@@ -111,8 +111,8 @@ let () =
   let projname'' = String.capitalize projname' in
   patch_srcfile "bin/main.ml" ~from:"Fsocaml.Router.router"
     ~into:(projname'' ^ ".Router.router");
-  patch_srcfile "fly.toml" ~from:"fsocaml" ~into:projname'';
-  patch_srcfile "Dockerfile" ~from:"fsocaml" ~into:projname'';
+  patch_srcfile "fly.toml" ~from:"fsocaml" ~into:projname';
+  patch_srcfile "Dockerfile" ~from:"fsocaml" ~into:projname';
 
   printf "%d files were patched.\n" (List.length dune_files + 3);
 
