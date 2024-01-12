@@ -46,7 +46,7 @@ dune exec setup
 which will use the name of the project folder as the project name, or
 
 ```bash
-dune exec setup newproject
+dune exec setup myproject
 ```
 
 which can be used to give at a different name.
@@ -592,3 +592,52 @@ let render req content =
 `<%- user_component req %>` renders our user component. The `-` tells the embedded ML preprocessor to render the string as HTML, instead of escaping it.
 
 And that's it! Now we should have a working web app with user registration and sign-in!
+
+## Tutorial - Deploying to production
+
+With the app up and running in the development environment, let's take the next step and deploy to a production environment.
+
+In this tutorial we'll use [Fly.io](https://fly.io) as hosting environment, but the basic approach applies to other hosting environments as well:
+
+1. Build the app in a container that uses the same OS as the production environment.
+2. Ensure that the production environment has the necessary runtime dependencies installed.
+3. Provision a production database to which the app will have access.
+4. Copy the built app's folder over to the production machine.
+5. Run the main executable.
+
+To deploy the Dream server to Fly.io we'll build the app in a Docker container on Alpine linux and then copy it to a runtime container based on a minimal Alpine installation.
+
+### Run the build
+
+The Fsocaml project already provides a `Dockerfile` with two stages: `build` builds the app in a full `opam` environment and `run` creates an image that can be deployed directly on Fly.io (or any other provider that can serve a Docker image).
+
+To build the project:
+
+```bash
+docker build --target build -t myproject_build .
+```
+
+### Create the runtime image
+
+The runtime will be deployed to the hosting service, and should be as slim as possible.
+
+To build the runtime image:
+
+```bash
+docker build --target run -t myproject .
+```
+
+Once the image is created you can test it on your development machine:
+
+```bash
+docker run --rm -p 8080:8080 --env-file ./docker.env \
+  --add-host=host.docker.internal:host-gateway -it myproject
+```
+
+This Docker invocation does a few things:
+- `--rm` will remove the container after it stops.
+- `-p 8080:8080` will make the web service available on the host at `http://localhost:8080`
+- The application on the image is running on a production environment now, and no longer has access to a development database on `localhost`. `--env-file ./docker.env` reads in environment variables that lets the app connect to the database on the container's host machine – i.e. the same database we used for testing.
+- `--addhost` gives the host machine the special hostname `host.docker.internal` so that we can connect to the database.
+
+After running this command we should be able to connect to the service at http://localhost:8080 and log in using any user accounts that were created during development testing.

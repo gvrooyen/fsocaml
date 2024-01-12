@@ -1,11 +1,10 @@
-ARG appname="fsocaml"
-
 #=------------------------------------------------------------------
 # BUILD STAGE
 # We use the official `ocaml/opam` image to build the OCaml project.
 #-------------------------------------------------------------------
 
 FROM ocaml/opam:alpine AS build
+ARG appname="fsocaml"
 
 # Install system dependencies
 RUN sudo apk add --update libev-dev openssl-dev gmp-dev pkgconf postgresql14-dev linux-headers npm
@@ -29,6 +28,7 @@ RUN opam exec -- dune build
 #-------------------------------------------------------------------
 
 FROM alpine AS run
+ARG appname="fsocaml"
 
 # Install system dependencies
 RUN apk add --update libev openssl gmp postgresql14 npm 
@@ -36,10 +36,10 @@ RUN apk add --update libev openssl gmp postgresql14 npm
 RUN adduser --home /home/dream --shell /bin/sh --disabled-password dream
 
 # Configure web application
-COPY --from=build --chown=dream:dream /home/opam/${appname} /usr/share/${appname}
+COPY --from=build --chown=dream:dream /home/opam/${appname} /usr/share/dream
 
 USER dream
-WORKDIR /usr/share/${appname}
+WORKDIR /usr/share/dream
 RUN npm install -D tailwindcss
 EXPOSE 8080
-ENTRYPOINT /usr/share/${appname}/_build/default/bin/main.exe
+ENTRYPOINT /usr/share/dream/_build/default/bin/main.exe
