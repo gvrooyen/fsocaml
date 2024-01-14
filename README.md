@@ -53,7 +53,7 @@ which can be used to give at a different name.
 
 ## Running the project
 
-Before you can run the project, you'll need to set up your database. FSOCaml assumes there's a Postgres instance running and that there is a `postgres` user with the password `postgres`. You can adjust these settings in `bin/config/fsoconf.ml`. In the `db_params` record, adjust the parameters as desired.
+Before we can run the project, you'll need to set up your database. FSOCaml assumes there's a Postgres instance running and that there is a `postgres` user with the password `postgres`. You can adjust these settings in `bin/config/fsoconf.ml`. In the `db_params` record, adjust the parameters as desired.
 
 Once you've configured your DB paramaters to your liking, you'll have to create the database and run any existing migrations:
 
@@ -627,7 +627,7 @@ To build the runtime image:
 docker build --target run -t myproject .
 ```
 
-Once the image is created you can test it on your development machine:
+Once the image is created we can test it on our development machine:
 
 ```bash
 docker run --rm -p 8080:8080 --env-file ./docker.env \
@@ -641,3 +641,53 @@ This Docker invocation does a few things:
 - `--addhost` gives the host machine the special hostname `host.docker.internal` so that we can connect to the database.
 
 After running this command we should be able to connect to the service at http://localhost:8080 and log in using any user accounts that were created during development testing.
+
+### Deploy to Fly.io
+
+Create a free account on [Fly.io](https://fly.io) and install the Fly.io CLI:
+
+```bash
+curl -L https://fly.io/install.sh | sh
+```
+
+Let's first create our production Postgres database:
+
+```bash
+fly postgres create
+```
+
+We'll have to provide the CLI with some information:
+
+1. Give the database app a unique name, or leave it blank for something random (only you and your other apps will see this).
+2. Select a convenient region.
+3. For a test application, select the `Development` configuration. This can always be upgraded as your app's usage scales.
+4. Select `y` to scale our node to zero after one hour. This will suspend the database node if it's been idle for a while, at the cost of a second or two latency to start up again if a new request comes in.
+
+Give the instance a minute or so to start up and then record the database credentials in a safe place (not inside the Git repo!). In particular, note the connection string since we will use that in the next step.
+
+Next we need to launch a Fly app to serve our web page:
+
+```bash
+fly launch --image myproject --local-only --generate-name
+```
+
+This copies the locally-built Docker image to Fly.io and launches it in a new app based on the settings in the `fly.toml` file. In this example we've asked Fly to generate a unique name, usually based on the name of the project directory. It will prompt you for some additional information:
+
+1. Enter `y` to let the CLI tool copy the `fly.toml` configuration to the new app.
+2. Review the default settings. If you need to change the app region, for example, you can enter `y` to edit it in the browser; alternatively just proceed with `N`.
+
+The Fly tool will proceed to copy the Docker layers to our Fly registry. Note that this can take a few minutes and that it is also possible to do a remote build (`fly launch` without specifying an image or a local build) but this may be more error-prone and difficult to debug.
+
+### Configure secrets on Fly.io
+
+The `fly.toml` file specifies some basic environment variables, but secrets such as database credentials and security strings should be specified in the runtime environment and never committed to source control. Commit secrets to the app as follows:
+
+```bash
+fly secrets set DATABASE_URL=<database_url> SECRET_KEY=<secret_key>
+```
+
+`<database_url>` is the connection string provided when Fly created the Postgres database. `<secret_key>` can be any high-entropy random string, preferably using URL-safe characters. Here's a quick hack to create such a string from your Linux shell:
+
+```bash
+< /dev/urandom tr -dc a-zA-Z0-9-._~\(\)\!\*:@,\; | head -c64 && echo
+```
