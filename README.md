@@ -668,10 +668,10 @@ Give the instance a minute or so to start up and then record the database creden
 Next we need to launch a Fly app to serve our web page:
 
 ```bash
-fly launch --image myproject --local-only --generate-name
+fly launch --image myproject --local-only --name <unique_name>
 ```
 
-This copies the locally-built Docker image to Fly.io and launches it in a new app based on the settings in the `fly.toml` file. In this example we've asked Fly to generate a unique name, usually based on the name of the project directory. It will prompt you for some additional information:
+This copies the locally-built Docker image to Fly.io and launches it in a new app based on the settings in the `fly.toml` file. You should also provide a globally unique name for your app – typically something of the form `<namespace>-<project_name>` works well, where `<namespace>` is a unique username or domain-related string and `project_name` would be the local name of the project. The CLI will prompt you for some additional information:
 
 1. Enter `y` to let the CLI tool copy the `fly.toml` configuration to the new app.
 2. Review the default settings. If you need to change the app region, for example, you can enter `y` to edit it in the browser; alternatively just proceed with `N`.
@@ -683,11 +683,15 @@ The Fly tool will proceed to copy the Docker layers to our Fly registry. Note th
 The `fly.toml` file specifies some basic environment variables, but secrets such as database credentials and security strings should be specified in the runtime environment and never committed to source control. Commit secrets to the app as follows:
 
 ```bash
-fly secrets set DATABASE_URL=<database_url> SECRET_KEY=<secret_key>
+fly secrets set DATABASE_URL="<database_url>" SECRET_KEY="<secret_key>"
 ```
 
-`<database_url>` is the connection string provided when Fly created the Postgres database. `<secret_key>` can be any high-entropy random string, preferably using URL-safe characters. Here's a quick hack to create such a string from your Linux shell:
+`<database_url>` is the connection string provided when Fly created the Postgres database. It should include the `postgres://` protocol prefix, but exclude the `:5432` port number at the end. `<secret_key>` can be any high-entropy random string, preferably using characters that can easily be pasted on the command line. Here's a quick hack to create such a string from your Linux shell:
 
 ```bash
-< /dev/urandom tr -dc a-zA-Z0-9-._~\(\)\!\*:@,\; | head -c64 && echo
+< /dev/urandom tr -dc a-zA-Z0-9-._~:+@, | head -c64 && echo
 ```
+
+### App and logs access
+
+We can run `fly status` from the project folder to check on the app's health and to find the URL where we can access it (usually in the form `<unique_name>.fly.dev`.
